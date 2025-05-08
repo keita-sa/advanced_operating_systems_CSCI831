@@ -4,6 +4,8 @@ import threading
 import time
 import os
 
+import matplotlib.pyplot as plt
+
 # ====================
 # DBList + Server Class (same as your original)
 # ====================
@@ -82,10 +84,11 @@ class Client:
 NUM_CLIENTS = 10
 REQUESTS_PER_CLIENT = 100
 
-def client_task(cid, results):
+def client_task(cid, results, timestamps):
     c = Client()
     for i in range(REQUESTS_PER_CLIENT):
         c.append(f"Data-{cid}-{i}")
+        timestamps.append(time.time())  # Record time of each successful request
     results[cid] = REQUESTS_PER_CLIENT
 
 def main():
@@ -101,10 +104,11 @@ def main():
     print("[Test] Starting throughput test...")
     threads = []
     results = [0] * NUM_CLIENTS
+    timestamps = []  # Track when each request finishes
     start = time.time()
 
     for i in range(NUM_CLIENTS):
-        t = threading.Thread(target=client_task, args=(i, results))
+        t = threading.Thread(target=client_task, args=(i, results, timestamps))
         threads.append(t)
         t.start()
 
@@ -116,6 +120,25 @@ def main():
     print(f"[Result] Total Requests: {total}")
     print(f"[Result] Total Time: {end - start:.2f} sec")
     print(f"[Result] Throughput: {total / (end - start):.2f} req/sec")
+
+    # Plot throughput over time
+    timestamps.sort()
+    window = 1.0  # seconds
+    bins = int((timestamps[-1] - timestamps[0]) / window) + 1
+    counts = [0] * bins
+
+    base = timestamps[0]
+    for t in timestamps:
+        idx = int((t - base) / window)
+        counts[idx] += 1
+
+    x = [base + i * window for i in range(bins)]
+    plt.plot(x, counts, marker='o')
+    plt.title("RPC Throughput Over Time")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Requests per Second")
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
     main()

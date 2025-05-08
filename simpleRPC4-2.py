@@ -4,6 +4,9 @@ import threading
 import time
 import os
 
+import matplotlib.pyplot as plt
+
+
 # ====================
 #  Database List with Fault Tolerance (Persistence)
 # ====================
@@ -90,6 +93,7 @@ class Client:
         self.server_host = server_host
         self.server_port = server_port
         self.retries = retries
+        self.latencies = []  # Store latencies
 
     def append(self, data):
         return self.send_request(("APPEND", data))
@@ -109,6 +113,7 @@ class Client:
                     end_time = time.time()  # End time after receiving
 
                     latency = end_time - start_time
+                    self.latencies.append(latency)  # Save latency
                     result = pickle.loads(response)
                     print(f"[Latency] Request took {latency:.6f} seconds")
                     return result
@@ -122,6 +127,17 @@ class Client:
                 break
 
         return "[Client Error] Failed to get response after retries"
+
+    def plot_latencies(self):
+        if not self.latencies:
+            print("No latency data to plot.")
+            return
+        plt.plot(self.latencies, marker='o')
+        plt.title("RPC Latency Over Time")
+        plt.xlabel("Request Index")
+        plt.ylabel("Latency (seconds)")
+        plt.grid(True)
+        plt.show()
 
 #  Run
 if __name__ == "__main__":
@@ -137,3 +153,5 @@ if __name__ == "__main__":
     print(client.append("Hello"))
     print(client.append("World"))
     print(client.get())
+
+    client.plot_latencies()  # Show latency graph
